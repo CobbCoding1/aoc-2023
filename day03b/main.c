@@ -14,43 +14,25 @@ typedef enum {
 } Ident;
 
 typedef struct {
+    size_t row;
+    size_t col;
+    char num1[4];
+    char num2[4];
+    int valid;
+} Gear;
+
+Gear gears[1024];
+size_t gears_index = 0;
+
+typedef struct {
     Ident ident;
     char value;
 } Element;
 
 typedef struct {
     char num[4];
-    char num2[4];
     int is_valid;
 } Value;
-
-char *trim(char *str, size_t len) {
-    char *result = malloc(sizeof(char) * 4);
-    size_t result_in = 0;
-    for(size_t i = 0; i < len; i++) {
-        if(isdigit(str[i])) {
-            result[result_in++] = str[i];
-        }
-    }
-    result[result_in] = '\0';
-    return result;
-}
-
-// stolen from https://stackoverflow.com/questions/8534274/is-the-strrev-function-not-available-in-linux
-char *strrev(char *str)
-{
-      char *p1, *p2;
-
-      if (! str || ! *str)
-            return str;
-      for (p1 = str, p2 = str + strlen(str) - 1; p2 > p1; ++p1, --p2)
-      {
-            *p1 ^= *p2;
-            *p2 ^= *p1;
-            *p1 ^= *p2;
-      }
-      return str;
-}
 
 char *read_from_file(char *filename) {
     FILE *file = fopen(filename, "r");
@@ -63,8 +45,17 @@ char *read_from_file(char *filename) {
     return contents;
 }   
 
+int check_if_gear(size_t row, size_t col) {
+    for(size_t i = 0; i < gears_index; i++) {
+        if(gears[i].row == row && gears[i].col == col) {
+            return i;
+        }
+    }
+    return -1;
+}
+
 int main() {
-    char *contents = read_from_file(TEST_INPUT);
+    char *contents = read_from_file(INPUT);
     size_t width = 0;
     size_t height = 0;
     for(int i = 0; contents[i] != '\0'; i++) {
@@ -86,12 +77,12 @@ int main() {
             Element elem = {.ident = DIGIT, .value = contents[i]};
             table[width_index][height_index] = elem;
             width_index++;
-        } else if(contents[i] == '.') {
-            Element elem = {.ident = DOT};
-            table[width_index][height_index] = elem;
-            width_index++;
         } else if(contents[i] == '*') {
             Element elem = {.ident = GEAR};
+            table[width_index][height_index] = elem;
+            width_index++;
+        } else if(contents[i] == '.') {
+            Element elem = {.ident = DOT};
             table[width_index][height_index] = elem;
             width_index++;
         } else {
@@ -106,69 +97,13 @@ int main() {
     int sum = 0;
 
     for(size_t h = 0; h < height; h++) {
-        //Value val = {0};
+        Value val = {0};
         for(size_t w = 0; w < width; w++) {
-            if(table[w][h].ident == GEAR) {
-                printf("GEAR\n");
-                char num[5];
-                char num2[5];
-                size_t num_index = 0;
-                size_t num2_index = 0;
-                for(int i = -1; i < 2; i++) {
-                    for(int j = -1; j < 2; j++) {
-                        if((j + (int)w) < 0 || (j + w) > width || (i + (int)h) < 0 || (h + i) > height) {
-                            continue;
-                        }
-                        if(i == (int)h && j == (int)w) {
-                            continue;
-                        }
-                        if(table[w+j][h+i].ident == DIGIT) {
-                            is_valid += 1;
-                            num_index = 2;
-                            num2_index = 2;
-                            if(is_valid == 1) {
-                                num[num_index] = table[w+j][h+i].value;
-                                int right = 1;
-                                while((w+right+j < width && table[w+right+j][h+i].ident == DIGIT)) {
-                                    num[num_index+right] = table[w+right+j][h+i].value;
-                                    right++;
-                                }
-
-                                int left = 1;
-                                while(((int)w-left+j >= 0 && table[w-left+j][h+i].ident == DIGIT)) {
-                                    num[num_index-left] = table[w-left+j][h+i].value;
-                                    left++;
-                                }
-                            } else {
-                                num2[num2_index] = table[w+j][h+i].value;
-                                int right = 1;
-                                while((w+right+j < width && table[w+right+j][h+i].ident == DIGIT)) {
-                                    num2[num2_index+right] = table[w+right+j][h+i].value;
-                                    right++;
-                                }
-
-                                int left = 1;
-                                while(((int)w-left+j >= 0 && table[w-left+j][h+i].ident == DIGIT)) {
-                                    num2[num2_index-left] = table[w-left+j][h+i].value;
-                                    left++;
-                                }
-                            }
-                        }
-                    }
-                }
-                char *trimmed1 = trim(num, 5);
-                char *trimmed2 = trim(num2, 5);
-                printf("%s %s\n", trimmed1, trimmed2);
-                free(trimmed1);
-                free(trimmed2);
-                is_valid = 0;
-            }
-            /*
             if(table[w][h].ident == DIGIT) {
+                size_t gear_row;
+                size_t gear_col;
                 size_t num_index = 0;
-                size_t num2_index = 0;
                 char num[4];
-                char num2[4];
                 num[num_index++] = table[w][h].value;
                 for(int i = -1; i < 2; i++) {
                     for(int j = -1; j < 2; j++) {
@@ -179,123 +114,62 @@ int main() {
                             continue;
                         }
                         if(table[w+j][h+i].ident == GEAR) {
+                            gear_row = w+j;
+                            gear_col = h+i;
                             is_valid = 1;
                         }
                     }
                 }
-                if(is_valid) {
-                    is_valid = 0;
-                    while(w+1 < width && table[w+1][h].ident == DIGIT) {
-                        w++;
-                        if(!is_valid) {
-                            for(int i = -1; i < 2; i++) {
-                                for(int j = -1; j < 2; j++) {
-                                    if(i == (int)h && j == (int)w) {
-                                        continue;
-                                    }
-                                    if((j + (int)w) < 0 || (j + w) > width || (i + (int)h) < 0 || (h + i) > height) {
-                                        continue;
-                                    }
-                                    if(table[w+j][h+i].ident == GEAR) {
-                                        for(int k = -1; k < 2; k++) {
-                                            for(int p = -1; p < 2; p++) {
-                                                if(k == (int)h && p == (int)w) {
-                                                    continue;
-                                                }
-                                                if((p + (int)w) < 0 || (p + w) > width || (k + (int)h) < 0 || (h + k) > height) {
-                                                    continue;
-                                                }
-                                                if(table[w+p][h+k].ident == DIGIT) {
-                                                    is_valid = 1;
-                                                    while(w+p+1 < width && table[w+p+1][h+k].ident == DIGIT) {
-                                                        w++;
-                                                        num2[num2_index++] = table[w+p][h+k].value;
-                                                    }
-                                                    if(num2_index == 1) {
-                                                        while((int)w+p-1 >= 0 && table[w+p-1][h+k].ident == DIGIT) {
-                                                            w--;
-                                                            num2[num2_index++] = table[w+p][h+k].value;
-                                                        }
-                                                        strrev(num2);
-                                                        w += num2_index - 1;
-                                                    }
-                                                    break;
-                                                }
-                                            }
-                                        }
-                                        break;
-                                    }
+                while(w+1 < width && table[w+1][h].ident == DIGIT) {
+                    w++;
+                    if(!is_valid) {
+                        for(int i = -1; i < 2; i++) {
+                            for(int j = -1; j < 2; j++) {
+                                if(i == (int)h && j == (int)w) {
+                                    continue;
+                                }
+                                if((j + (int)w) < 0 || (j + w) > width || (i + (int)h) < 0 || (h + i) > height) {
+                                    continue;
+                                }
+                                if(table[w+j][h+i].ident == GEAR) {
+                                    gear_row = w+j;
+                                    gear_col = h+i;
+                                    is_valid = 1;
+                                    break;
                                 }
                             }
                         }
-                        num[num_index++] = table[w][h].value;
                     }
-
-                    printf("num index = %zu is_valid = %d\n", num_index, is_valid);
-                    if(num_index == 1) {
-                            while((int)w-1 >= 0 && table[w-1][h].ident == DIGIT) {
-                                w--;
-                                    if(!is_valid) {
-                                        for(int i = -1; i < 2; i++) {
-                                            for(int j = -1; j < 2; j++) {
-                                                if(i == (int)h && j == (int)w) {
-                                                    continue;
-                                                }
-                                                if((j + (int)w) < 0 || (j + w) > width || (i + (int)h) < 0 || (h + i) > height) {
-                                                    continue;
-                                                }
-                                                if(table[w+j][h+i].ident == GEAR) {
-                                                    for(int k = -1; k < 2; k++) {
-                                                        for(int p = -1; p < 2; p++) {
-                                                            if(k == (int)h && p == (int)w) {
-                                                                continue;
-                                                            }
-                                                            if((p + (int)w) < 0 || (p + w) > width || (k + (int)h) < 0 || (h + k) > height) {
-                                                                continue;
-                                                            }
-                                                            if(table[w+p][h+k].ident == DIGIT) {
-                                                                is_valid = 1;
-                                                                while(w+p+1 < width && table[w+p+1][h+k].ident == DIGIT) {
-                                                                    w++;
-                                                                    num2[num2_index++] = table[w+p][h+k].value;
-                                                                }
-                                                                if(num2_index == 1) {
-                                                                    while((int)w+p-1 >= 0 && table[w+p-1][h+k].ident == DIGIT) {
-                                                                        w--;
-                                                                        num2[num2_index++] = table[w+p][h+k].value;
-                                                                    }
-                                                                    w += num2_index - 1;
-                                                                }
-                                                                break;
-                                                            }
-                                                        }
-                                                    }
-                                                    break;
-                                                }
-                                            }
-                                        }
-                                    }
-                                num[num_index++] = table[w][h].value;
-                            }
-                        strrev(num);
-                        w += num_index - 1;
-                    }
-
-                    val.is_valid = is_valid;
-                    num[num_index] = '\0';
-                    num2[num2_index] = '\0';
-                    strcpy(val.num, num);
-                    strcpy(val.num2, num2);
-                    printf("%s 2: %s\n", num, num2);
-                    if(is_valid) {
-                        //printf("%s 2: %s\n", num, num2);
-                        sum += (atoi(num) * atoi(num2));
-                        value_stack[stack_index++] = val;
-                    }
-                    is_valid = 0;
+                    num[num_index++] = table[w][h].value;
                 }
+                val.is_valid = is_valid;
+                num[num_index] = '\0';
+                strcpy(val.num, num);
+                if(is_valid) {
+                    int gear_index = check_if_gear(gear_row, gear_col);
+                    if(gear_index == -1) {
+                        Gear cur_gear = {
+                            .row = gear_row,
+                            .col = gear_col,
+                        };
+                        strcpy(cur_gear.num1, num);
+                        gears[gears_index++] = cur_gear;
+                    } else {
+                        gears[gear_index].valid = 1;
+                        strcpy(gears[gear_index].num2, num);
+                    }
+                    //sum += atoi(num);
+                    value_stack[stack_index++] = val;
+                }
+                is_valid = 0;
             }
-            */
+        }
+
+    }
+    for(int i = 0; i < (int)gears_index; i++) {
+        if(gears[i].valid) {
+            sum += atoi(gears[i].num1) * atoi(gears[i].num2);
+            printf("%d\n", atoi(gears[i].num1) * atoi(gears[i].num2));
         }
     }
     printf("sum: %d\n", sum);
