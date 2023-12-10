@@ -41,11 +41,8 @@ int main(void) {
     for(size_t i = 0; i < strlen(contents); i++) {
         if(contents[i] == '\n') {
             for(size_t in = 0; in < line.winning_index; in++) {
-                //printf("%d\n", line.winning_nums[in]);
             }
-            printf("----\n");
             line_index = 0;
-            printf("line number: %zu\n", line_number);
             line.line_number = line_number;
             cur_add = 1;
             is_first = 1;
