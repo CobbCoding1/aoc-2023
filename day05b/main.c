@@ -22,13 +22,11 @@ typedef struct {
     int64_t is_converted;
 } Seeds;
 
-
 typedef struct {
     int64_t original;
     int64_t converted;
     int64_t is_converted;
 } Value;
-
 
 typedef struct {
     Value conversions[8][256];
