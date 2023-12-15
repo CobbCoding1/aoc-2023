@@ -81,12 +81,14 @@ int main() {
         }
         is_bid = !is_bid;
     }
+    
     for(size_t i = 0; i < hands_len; i++) {
         Matches_Collection collection = {0};
         int max_collisions = 0;
         int second_max_collisions = 0;
         char max_char = '2';
         char second_max_char = '2';
+        
         for(size_t s = 0; s < STRENGTHS_LEN; s++) {
             int collisions = 0;
             char cur_char = strengths[s];
@@ -97,7 +99,7 @@ int main() {
                 }
             }
             match.collisions = collisions;
-            match.max_chars[i] = collisions;
+            //match.max_chars[i] = collisions;
             match.id = i+1;
             match.bid = bid[i];
             if(collisions > 0) {
@@ -110,6 +112,7 @@ int main() {
                 //printf("%s, %c, %d\n", hands[i], cur_char, collisions);
             }
         }
+        
         for(size_t collect = 0; collect < collection.matches_len; collect++) {
             for(size_t k = 0; hands[i][k] != '\0'; k++) {
                 char str[2];
@@ -119,9 +122,11 @@ int main() {
                 //printf("hands[i] = %s, value of %c is %d, k = %zu\n", hands[i], hands[i][k], collection.matches[collect].card_values[k], k);
             }
         }
-            printf("i: %zu\n", matches_len);
+        
+            //printf("i: %zu\n", matches_len);
         matches_stack[matches_len++] = collection;
     }
+    
     for(size_t i = 0; i < matches_len; i++) {
         size_t type_index = matches_stack[i].matches_len - 1;
         int match_collisions = 0;
@@ -161,6 +166,7 @@ int main() {
             if(i + 1 < rankings_len) {
                 if(rankings[i].rank == rankings[i+1].rank) {
                     int value = 0;
+                    
                     while(rankings[i].card_values[value] == rankings[i+1].card_values[value] && value < STRENGTHS_LEN) {
                         value++;
                     }
@@ -171,6 +177,7 @@ int main() {
                         Matches temp = rankings[i];
                         rankings[i] = rankings[i + 1];
                         rankings[i + 1] = temp;
+                        
                     } else {
                         continue;
                     }
@@ -183,6 +190,7 @@ int main() {
             }
         }
     }
+
 
     int64_t total = 0;
     for(size_t i = 0; i < rankings_len; i++) {
