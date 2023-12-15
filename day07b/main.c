@@ -20,7 +20,7 @@ char *read_from_file(char *filename) {
 }   
 
 #define STRENGTHS_LEN 13
-char strengths[STRENGTHS_LEN] = "23456789TJQKA";
+char strengths[STRENGTHS_LEN] = "J23456789TQKA";
 char hands[1024][6] = {0};
 size_t hands_len = 0;
 int bid[1024] = {0};
@@ -47,6 +47,7 @@ typedef struct {
     char max_chars[STRENGTHS_LEN];
     int card_values[5];
     int collisions;
+    int j_collisions;
     int rank;
     size_t id;
     Types type;
@@ -65,7 +66,7 @@ Matches rankings[1024] = {0};
 size_t rankings_len = 0;
 
 int main() {
-    char *contents = read_from_file(TEST_TEST_INPUT);
+    char *contents = read_from_file(INPUT);
     int is_bid = 0;
     for(size_t i = 0; contents[i] != '\0'; i++) {
         char word[6] = {0};
@@ -91,14 +92,19 @@ int main() {
         
         for(size_t s = 0; s < STRENGTHS_LEN; s++) {
             int collisions = 0;
+            int j_collisions = 0;
             char cur_char = strengths[s];
             Matches match = {0};
             for(size_t k = 0; hands[i][k] != '\0'; k++) {
                 if(hands[i][k] == cur_char) {
                     collisions += 1;
                 }
+                if(hands[i][k] == 'J') {
+                    j_collisions += 1;
+                }
             }
             match.collisions = collisions;
+            match.j_collisions = j_collisions;
             //match.max_chars[i] = collisions;
             match.id = i+1;
             match.bid = bid[i];
@@ -132,21 +138,32 @@ int main() {
         int match_collisions = 0;
         Types current_type = HIGH_CARD;
         for(size_t j = 0; j < matches_stack[i].matches_len; j++) {
+            //matches_stack[i].matches[j].collisions += matches_stack[i].matches[j].j_collisions;
             Matches current = matches_stack[i].matches[j];
+            int is_j = 0;
+            if(current.j_collisions > 0) {
+                is_j = 1;
+            }
+            printf("id: %zu, col: %d, j_col: %d, matches_len: %zu, current_char: %c\n", 
+                   current.id, current.collisions, current.j_collisions, matches_stack[i].matches_len, current.cur_char);
+
+            if(current.j_collisions < 5 && current.cur_char != 'J') {
+                current.collisions += current.j_collisions;
+            }
             if(current.collisions == 5) {
                 current_type = FIVE_OF_A_KIND;
             } else if(current.collisions == 4) {
                 current_type = FOUR_OF_A_KIND;
             } else if(current.collisions == 3) {
-                if(matches_stack[i].matches_len == 2) {
+                if((matches_stack[i].matches_len - is_j) == 2) {
                     current_type = FULL_HOUSE;
                 } else {
                     current_type = THREE_OF_A_KIND;
                 }
             } else if(current.collisions == 2) {
-                if(matches_stack[i].matches_len == 3) {
+                if(((matches_stack[i].matches_len - is_j) == 3)) {
                     current_type = TWO_PAIR;
-                } else if(matches_stack[i].matches_len == 4) {
+                } else if((matches_stack[i].matches_len - is_j) == 4) {
                     current_type = ONE_PAIR;
                 }
             }
@@ -155,8 +172,20 @@ int main() {
             //printf("cur: %c, type: %d, rank: %d\n", matches_stack[i].matches[j].cur_char, matches_stack[i].matches[j].type, matches_stack[i].matches[j].rank);
         }
 
-        //printf("CURRENT TYPE: %d\n", matches_stack[i].matches[type_index].type);
-        rankings[rankings_len++] = matches_stack[i].matches[type_index];
+        Types greatest = 0;
+        int g_index = 0;
+        for(size_t j = 0; j < type_index+1; j++) {
+            if(matches_stack[i].matches[j].type > greatest) {
+                greatest = matches_stack[i].matches[j].type;
+                g_index = j;
+            } 
+        }
+        if(matches_stack[i].matches[g_index].type == 1) {
+            Matches current = matches_stack[i].matches[g_index];
+            //printf("id: %zu, TWO PAIR j_collisions: %d\n", current.id, current.j_collisions);
+        }
+        printf("current_id: %zu, CURRENT TYPE: %d, greatest: %d\n", matches_stack[i].matches[g_index].id, matches_stack[i].matches[g_index].type, greatest);
+        rankings[rankings_len++] = matches_stack[i].matches[g_index];
     }
 
     int sorted = 0;
@@ -195,12 +224,12 @@ int main() {
     int64_t total = 0;
     for(size_t i = 0; i < rankings_len; i++) {
         total += (rankings[i].bid * (i + 1));
-        
+       /* 
         printf("id: %zu, bid: %d, max_char: %c, second_max_char: %c, current_char: %c, occurances: %d, type: %d, rank: %d\n", 
                rankings[i].id, rankings[i].bid, 48, 48, rankings[i].cur_char, 
                rankings[i].collisions, rankings[i].type, 
                rankings[i].rank);
-        
+       */ 
     }
     printf("total: %ld\n", total);
     printf("%zu\n", rankings_len);
