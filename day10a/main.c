@@ -40,9 +40,8 @@ typedef struct {
     size_t y;
 } Vector2;
 
-
 int main() {
-    char *contents = read_from_file(TEST_INPUT);
+    char *contents = read_from_file(INPUT);
     size_t width;
     for(width = 0; contents[width] != '\n'; width++) continue;
     size_t height = width;
@@ -92,67 +91,234 @@ int main() {
         tiles[h_index][w_index++].type = current_pipe;
     }
 
+    for(size_t i = 0; i < width; i++) {
+        int iter = 0;
+        for(size_t j = 0; j < height; j++) {
+            printf("%d", tiles[i][j].type);
+        }
+        printf("\n");
+    }
+
 
     Vector2 current_loc = {
         .x = starting.x,
         .y = starting.y,
     };
     Tile current;
-    tiles[current_loc.x][current_loc.y].connecting = 1;
+    current = tiles[starting.x][starting.y];
+    current.type = STARTING;
+    size_t count = 0;
+    //tiles[starting.x][starting.y].connecting = 1;
+    printf("x: %zu, y: %zu\n", current_loc.x, current_loc.y);
     while(1) {
-        printf("%d: %d, ", tiles[current_loc.y][current_loc.x+1].type, tiles[current_loc.y][current_loc.x+1].connecting);
-        printf("%d: %d, ", tiles[current_loc.y+1][current_loc.x].type, tiles[current_loc.y+1][current_loc.x].connecting);
-        printf("%d: %d, ", tiles[current_loc.y][current_loc.x-1].type, tiles[current_loc.y][current_loc.x-1].connecting);
-        printf("%d: %d ", tiles[current_loc.y-1][current_loc.x].type, tiles[current_loc.y-1][current_loc.x].connecting);
+        count++;
+        printf("current_loc: x: %zu, y: %zu\n", current_loc.x, current_loc.y);
+        printf("current: %d, right: %d, connecting: %d, ", current.type, tiles[current_loc.y][current_loc.x+1].type, 
+               tiles[current_loc.y][current_loc.x+1].connecting);
+        printf("down: %d, connecting: %d, ", tiles[current_loc.y+1][current_loc.x].type, 
+               tiles[current_loc.y+1][current_loc.x].connecting);
+        printf("left: %d, connecting: %d, ", tiles[current_loc.y][current_loc.x-1].type,
+               tiles[current_loc.y][current_loc.x-1].connecting);
+        printf("up: %d, connecting: %d ", tiles[current_loc.y-1][current_loc.x].type, 
+               tiles[current_loc.y-1][current_loc.x].connecting);
+
         printf("\n");
-        if((tiles[current_loc.y][current_loc.x+1].type == SW ||
-           tiles[current_loc.y][current_loc.x+1].type == NW ||
-           tiles[current_loc.y][current_loc.x+1].type == HORIZONTAL)
-           && tiles[current_loc.y][current_loc.x+1].connecting == 0) {
-            current_loc.x = current_loc.x + 1;
-            current_loc.y = current_loc.y;
-            tiles[current_loc.y][current_loc.x].connecting = 1;
-            current = tiles[current_loc.y][current_loc.x];
-        } else if((tiles[current_loc.y][current_loc.x-1].type == SE ||
-           tiles[current_loc.y][current_loc.x-1].type == NE ||
-           tiles[current_loc.y][current_loc.x-1].type == HORIZONTAL)
-           && tiles[current_loc.y][current_loc.x-1].connecting == 0) {
-            current_loc.x = current_loc.x - 1;
-            current_loc.y = current_loc.y;
-            tiles[current_loc.y][current_loc.x].connecting = 1;
-            current = tiles[current_loc.y][current_loc.x];
-        } else if((tiles[current_loc.y+1][current_loc.x].type == NW ||
-           tiles[current_loc.y+1][current_loc.x].type == NE ||
-           tiles[current_loc.y+1][current_loc.x].type == VERTICAL)
-           && tiles[current_loc.y+1][current_loc.x].connecting == 0) {
-            current_loc.x = current_loc.x;
-            current_loc.y = current_loc.y + 1;
-            tiles[current_loc.y][current_loc.x].connecting = 1;
-            current = tiles[current_loc.y][current_loc.x];
-        } else if((tiles[current_loc.y-1][current_loc.x].type == SW ||
-           tiles[current_loc.y-1][current_loc.x].type == SE ||
-           tiles[current_loc.y-1][current_loc.x].type == VERTICAL)
-           && tiles[current_loc.y-1][current_loc.x].connecting == 0) {
-            current_loc.x = current_loc.x;
-            current_loc.y = current_loc.y - 1;
-            tiles[current_loc.y][current_loc.x].connecting = 1;
-            current = tiles[current_loc.y][current_loc.x];
-        } else {
-            printf("current: %d\n", current.type);
-            break;
+
+        switch(current.type) {
+            case VERTICAL:
+                if((tiles[current_loc.y+1][current_loc.x].type == NW ||
+                   tiles[current_loc.y+1][current_loc.x].type == NE ||
+                   tiles[current_loc.y+1][current_loc.x].type == VERTICAL)
+                   && tiles[current_loc.y+1][current_loc.x].connecting == 0) {
+                    current_loc.x = current_loc.x;
+                    current_loc.y = current_loc.y + 1;
+                    tiles[current_loc.y][current_loc.x].connecting = 1;
+                    current = tiles[current_loc.y][current_loc.x];
+                } else if((tiles[current_loc.y-1][current_loc.x].type == SW ||
+                   tiles[current_loc.y-1][current_loc.x].type == SE ||
+                   tiles[current_loc.y-1][current_loc.x].type == VERTICAL)
+                   && tiles[current_loc.y-1][current_loc.x].connecting == 0) {
+                    current_loc.x = current_loc.x;
+                    current_loc.y = current_loc.y - 1;
+                    tiles[current_loc.y][current_loc.x].connecting = 1;
+                    current = tiles[current_loc.y][current_loc.x];
+                } else {
+                    goto end_loop;
+                    printf("current: %d\n", current.type);
+                    break;
+                }
+                break;
+            case HORIZONTAL:
+                if((tiles[current_loc.y][current_loc.x+1].type == SW ||
+                   tiles[current_loc.y][current_loc.x+1].type == NW ||
+                   tiles[current_loc.y][current_loc.x+1].type == HORIZONTAL)
+                   && tiles[current_loc.y][current_loc.x+1].connecting == 0) {
+                    current_loc.x = current_loc.x + 1;
+                    current_loc.y = current_loc.y;
+                    tiles[current_loc.y][current_loc.x].connecting = 1;
+                    current = tiles[current_loc.y][current_loc.x];
+                } else if((tiles[current_loc.y][current_loc.x-1].type == SE ||
+                   tiles[current_loc.y][current_loc.x-1].type == NE ||
+                   tiles[current_loc.y][current_loc.x-1].type == HORIZONTAL)
+                   && tiles[current_loc.y][current_loc.x-1].connecting == 0) {
+                    current_loc.x = current_loc.x - 1;
+                    current_loc.y = current_loc.y;
+                    tiles[current_loc.y][current_loc.x].connecting = 1;
+                    current = tiles[current_loc.y][current_loc.x];
+                } else {
+                    goto end_loop;
+                    printf("current: %d\n", current.type);
+                    return 0;
+                    break;
+                }
+                break;
+            case NE:
+                if((tiles[current_loc.y][current_loc.x+1].type == SW ||
+                   tiles[current_loc.y][current_loc.x+1].type == NW ||
+                   tiles[current_loc.y][current_loc.x+1].type == HORIZONTAL)
+                   && tiles[current_loc.y][current_loc.x+1].connecting == 0) {
+                    current_loc.x = current_loc.x + 1;
+                    current_loc.y = current_loc.y;
+                    tiles[current_loc.y][current_loc.x].connecting = 1;
+                    current = tiles[current_loc.y][current_loc.x];
+                } else if((tiles[current_loc.y-1][current_loc.x].type == SW ||
+                   tiles[current_loc.y-1][current_loc.x].type == SE ||
+                   tiles[current_loc.y-1][current_loc.x].type == VERTICAL)
+                   && tiles[current_loc.y-1][current_loc.x].connecting == 0) {
+                    current_loc.x = current_loc.x;
+                    current_loc.y = current_loc.y - 1;
+                    tiles[current_loc.y][current_loc.x].connecting = 1;
+                    current = tiles[current_loc.y][current_loc.x];
+                } else {
+                    goto end_loop;
+                    return 0;
+                    printf("current: %d\n", current.type);
+                    break;
+                }
+                break;
+            case NW:
+                if((tiles[current_loc.y][current_loc.x-1].type == SE ||
+                   tiles[current_loc.y][current_loc.x-1].type == NE ||
+                   tiles[current_loc.y][current_loc.x-1].type == HORIZONTAL)
+                   && tiles[current_loc.y][current_loc.x-1].connecting == 0) {
+                    current_loc.x = current_loc.x - 1;
+                    current_loc.y = current_loc.y;
+                    tiles[current_loc.y][current_loc.x].connecting = 1;
+                    current = tiles[current_loc.y][current_loc.x];
+                    break;
+                } else if((tiles[current_loc.y-1][current_loc.x].type == SW ||
+                   tiles[current_loc.y-1][current_loc.x].type == SE ||
+                   tiles[current_loc.y-1][current_loc.x].type == VERTICAL)
+                   && tiles[current_loc.y-1][current_loc.x].connecting == 0) {
+                    printf("TRUE\n");
+                    current_loc.x = current_loc.x;
+                    current_loc.y = current_loc.y - 1;
+                    tiles[current_loc.y][current_loc.x].connecting = 1;
+                    current = tiles[current_loc.y][current_loc.x];
+                    break;
+                } else {
+                    printf("current: %d, y-1: %d, %d\n", current.type, tiles[current_loc.y-1][current_loc.x].connecting, SE);
+                    goto end_loop;
+                    return 0;
+                    break;
+                }
+                break;
+            case SW:
+                if((tiles[current_loc.y][current_loc.x-1].type == NE ||
+                   tiles[current_loc.y][current_loc.x-1].type == SE ||
+                   tiles[current_loc.y][current_loc.x-1].type == HORIZONTAL)
+                   && tiles[current_loc.y][current_loc.x-1].connecting == 0) {
+                    current_loc.x = current_loc.x - 1;
+                    current_loc.y = current_loc.y;
+                    tiles[current_loc.y][current_loc.x].connecting = 1;
+                    current = tiles[current_loc.y][current_loc.x];
+                } else if((tiles[current_loc.y+1][current_loc.x].type == NW ||
+                   tiles[current_loc.y+1][current_loc.x].type == NE ||
+                   tiles[current_loc.y+1][current_loc.x].type == VERTICAL)
+                   && tiles[current_loc.y+1][current_loc.x].connecting == 0) {
+                    current_loc.x = current_loc.x;
+                    current_loc.y = current_loc.y + 1;
+                    tiles[current_loc.y][current_loc.x].connecting = 1;
+                    current = tiles[current_loc.y][current_loc.x];
+                } else {
+                    printf("current: %d, y+1: %d, %d\n", current.type, tiles[current_loc.y+1][current_loc.x].connecting, NW);
+                    goto end_loop;
+                    return 0;
+                    break;
+                }
+                break;
+            case SE:
+                if((tiles[current_loc.y][current_loc.x+1].type == SW ||
+                   tiles[current_loc.y][current_loc.x+1].type == NW ||
+                   tiles[current_loc.y][current_loc.x+1].type == HORIZONTAL)
+                   && tiles[current_loc.y][current_loc.x+1].connecting == 0) {
+                    printf("SW\n");
+                    current_loc.x = current_loc.x + 1;
+                    current_loc.y = current_loc.y;
+                    tiles[current_loc.y][current_loc.x].connecting = 1;
+                    current = tiles[current_loc.y][current_loc.x];
+                } else if((tiles[current_loc.y+1][current_loc.x].type == NW ||
+                   tiles[current_loc.y+1][current_loc.x].type == NE ||
+                   tiles[current_loc.y+1][current_loc.x].type == VERTICAL)
+                   && tiles[current_loc.y+1][current_loc.x].connecting == 0) {
+                    current_loc.x = current_loc.x;
+                    current_loc.y = current_loc.y + 1;
+                    tiles[current_loc.y][current_loc.x].connecting = 1;
+                    current = tiles[current_loc.y][current_loc.x];
+                } else {
+                    printf("current: %d\n", current.type);
+                    goto end_loop;
+                    return 0;
+                    break;
+                }
+                break;
+            case GROUND:
+                return 0;
+                break;
+            case STARTING:
+                /*if((tiles[current_loc.y][current_loc.x+1].type == SW ||
+                   tiles[current_loc.y][current_loc.x+1].type == NW ||
+                   tiles[current_loc.y][current_loc.x+1].type == HORIZONTAL)
+                   && tiles[current_loc.y][current_loc.x+1].connecting == 0) {
+                    current_loc.x = current_loc.x + 1;
+                    current_loc.y = current_loc.y;
+                    tiles[current_loc.y][current_loc.x].connecting = 1;
+                    current = tiles[current_loc.y][current_loc.x];
+                } else if((tiles[current_loc.y][current_loc.x-1].type == SE ||
+                   tiles[current_loc.y][current_loc.x-1].type == NE ||
+                   tiles[current_loc.y][current_loc.x-1].type == HORIZONTAL)
+                   && tiles[current_loc.y][current_loc.x-1].connecting == 0) {
+                    current_loc.x = current_loc.x - 1;
+                    current_loc.y = current_loc.y;
+                    tiles[current_loc.y][current_loc.x].connecting = 1;
+                    current = tiles[current_loc.y][current_loc.x];
+                */
+                if((tiles[current_loc.y+1][current_loc.x].type == NW ||
+                   tiles[current_loc.y+1][current_loc.x].type == NE ||
+                   tiles[current_loc.y+1][current_loc.x].type == VERTICAL)
+                   && tiles[current_loc.y+1][current_loc.x].connecting == 0) {
+                    current_loc.x = current_loc.x;
+                    current_loc.y = current_loc.y + 1;
+                    tiles[current_loc.y][current_loc.x].connecting = 1;
+                    current = tiles[current_loc.y][current_loc.x];
+                } else if((tiles[current_loc.y-1][current_loc.x].type == SW ||
+                   tiles[current_loc.y-1][current_loc.x].type == SE ||
+                   tiles[current_loc.y-1][current_loc.x].type == VERTICAL)
+                   && tiles[current_loc.y-1][current_loc.x].connecting == 0) {
+                    current_loc.x = current_loc.x;
+                    current_loc.y = current_loc.y - 1;
+                    tiles[current_loc.y][current_loc.x].connecting = 1;
+                    current = tiles[current_loc.y][current_loc.x];
+                } else {
+                    goto end_loop;
+                    return 0;
+                    printf("current: %d\n", current.type);
+                    break;
+                }
+                break;
         }
     }
-
-
-    for(size_t i = 0; i < width; i++) {
-        for(size_t j = 0; j < height; j++) {
-            if(tiles[i][j].connecting) {
-                printf("%d", tiles[i][j].type);
-            } else {
-                printf(" ");
-            }
-        }
-        printf("\n");
-    }
+end_loop:
+    printf("%zu\n", count/2);
     return 0;
 }
