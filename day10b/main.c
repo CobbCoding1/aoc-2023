@@ -30,9 +30,17 @@ typedef enum {
     STARTING,
 } Pipes;
 
+typedef enum {
+    NOT_CHECKED,
+    CHECKING,
+    ENCLOSED,
+    NOT_ENCLOSED,
+} State;
+
 typedef struct {
     int connecting;
     Pipes type;
+    State state;
 } Tile;
 
 typedef struct {
@@ -40,36 +48,73 @@ typedef struct {
     size_t y;
 } Vector2;
 
-int check_if_enclosed(Tile tiles[11][9], size_t width, size_t height, size_t x, size_t y) {
-    int is_enclosed = 0;
-    if(x + 1 >= width || x == 0 || y + 1 >= height || y == 0) {
+int check_if_enclosed(Tile tiles[20][20], size_t width, size_t height, size_t x, size_t y) {
+    //printf("x: %zu, y: %zu, TILes width: %zu, height: %zu\n", x, y, width, height);
+    if(x+1 >= width || (int)x-1 <= 0 || y+1 >= height || (int)y-1 <= 0 || tiles[x][y].state == NOT_ENCLOSED) {
         return 0;
     } 
-    if (tiles[x+1][y].connecting) {
-        is_enclosed++;
-    } else if(tiles[x+1][y].type == GROUND) {
-        is_enclosed += check_if_enclosed(tiles, width, height, x+1, y);
-    } 
-    if(tiles[x-1][y].connecting) {
-        is_enclosed++;
-    } else if(tiles[x-1][y].type == GROUND) {
-        is_enclosed += check_if_enclosed(tiles, width, height, x-1, y);
-    } 
-    if(tiles[x][y+1].connecting) {
-        is_enclosed++;
-    } else if(tiles[x][y+1].type == GROUND) {
-        is_enclosed += check_if_enclosed(tiles, width, height, x, y+1);
-    } 
-    if(tiles[x][y-1].connecting) {
-        is_enclosed++;
-    } else if(tiles[x][y-1].type == GROUND) {
-        is_enclosed += check_if_enclosed(tiles, width, height, x, y-1);
+    tiles[x][y].state = CHECKING;
+    
+    int count = 0;
+    if(tiles[x+1][y].connecting == 1) {
+        count++;
+    } else {
+        if(tiles[x+1][y].state == NOT_ENCLOSED) {
+            tiles[x][y].state = NOT_ENCLOSED;
+            return 0;
+        } else if(tiles[x+1][y].state == CHECKING) {
+            count++;
+        } else {
+            count += check_if_enclosed(tiles, width, height, x+1, y);
+        }
     }
 
-    //printf("is enclosed: %d, %zu, %zu\n", is_enclosed, x, y);
-    if(is_enclosed >= 4) {
+    if(tiles[x-1][y].connecting == 1) {
+        count++;
+    } else {
+        if(tiles[x-1][y].state == NOT_ENCLOSED) {
+            tiles[x][y].state = NOT_ENCLOSED;
+            return 0;
+        } else if(tiles[x-1][y].state == CHECKING) {
+            count++;
+        } else {
+            count += check_if_enclosed(tiles, width, height, x-1, y);
+        }
+    }
+
+
+    if(tiles[x][y+1].connecting == 1) {
+        count++;
+    } else {
+        if(tiles[x][y+1].state == NOT_ENCLOSED) {
+            tiles[x][y].state = NOT_ENCLOSED;
+            return 0;
+        } else if(tiles[x][y+1].state == CHECKING) {
+            count++;
+        } else {
+            count += check_if_enclosed(tiles, width, height, x, y+1);
+        }
+    }
+
+
+    if(tiles[x][y-1].connecting == 1) {
+        count++;
+    } else {
+        if(tiles[x][y-1].state == NOT_ENCLOSED) {
+            tiles[x][y].state = NOT_ENCLOSED;
+            return 0;
+        } else if(tiles[x][y-1].state == CHECKING) {
+            count++;
+        } else {
+            count += check_if_enclosed(tiles, width, height, x, y-1);
+        }
+    }
+
+    if(count == 4) {
+        tiles[x][y].state = ENCLOSED;
         return 1;
     }
+    tiles[x][y].state = NOT_ENCLOSED;
     return 0;
 }
 
@@ -78,7 +123,6 @@ int main() {
     size_t width;
     for(width = 0; contents[width] != '\n'; width++) continue;
     size_t height = width;
-    height = 9;
 
     Tile tiles[height][width];
 
@@ -122,6 +166,7 @@ int main() {
                 break;
         }
         tiles[h_index][w_index].connecting = 0;
+        tiles[h_index][w_index].state = 0;
         tiles[h_index][w_index++].type = current_pipe;
     }
 
@@ -135,7 +180,7 @@ int main() {
     size_t count = 0;
     current = tiles[starting.x][starting.y];
     current.type = STARTING;
-    //tiles[starting.x][starting.y].connecting = 1;
+    tiles[starting.x][starting.y].connecting = 1;
     printf("x: %zu, y: %zu\n", current_loc.x, current_loc.y);
     while(1) {
         printf("current_loc: x: %zu, y: %zu\n", current_loc.x, current_loc.y);
@@ -346,14 +391,13 @@ int main() {
     }
 end_loop:
 
-    for(size_t i = 0; i < width; i++) {
-        int iter = 0;
-        for(size_t j = 0; j < height; j++) {
+    for(size_t i = 0; i < height; i++) {
+        for(size_t j = 0; j < width; j++) {
             if(tiles[i][j].connecting || tiles[i][j].type == STARTING) {
                 printf("%d", tiles[i][j].type);
             } else if(check_if_enclosed(tiles, width, height, i, j)) {
                 count++;
-                printf("I");
+                printf("-");
             } else {
                 printf(".");
             }
